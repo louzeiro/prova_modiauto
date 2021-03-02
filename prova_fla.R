@@ -36,7 +36,9 @@ dados <- dados %>% filter(as.numeric(price)>0)
 min(dados$price)
 
 # Analisando os possíveis outliers
+# https://www.r-bloggers.com/2020/01/how-to-remove-outliers-in-r/
 outliers <- boxplot((dados$price), plot=FALSE)$out
+print(outliers)
 Q <- quantile(dados$price, probs=c(.25, .75), na.rm = FALSE)
 iqr <- IQR(dados$price)
 up <-  Q[2]+1.5*iqr # Upper Range  
@@ -50,46 +52,67 @@ max(dados$price)
 
 dim(dados)
 
+###### Brasil ########
 br_boxplot <-
   dados %>%
   select(price, color, region) %>%
   #filter(region == "RS") %>%
   #group_by(color) %>%
-  ggplot(mapping = aes(x = color, as.numeric(price))) +
+  ggplot(mapping = aes(x = color, price)) +
   #  geom_density(mapping = aes(group = color)) +
-  geom_boxplot(
-    width = .2,
-    outlier.colour = NA,
-    coef = 1000,
-    #position = position_nudge(.2), 
-    color = "black"
-  ) +
-  stat_summary(fun = mean, geom="point", shape=20, size=3, 
-               color="red", fill="red") +
+  geom_boxplot( width = .2, outlier.colour = NA,coef = 1000,color = "black") +
+  stat_summary(fun = mean, geom="point", shape=20, size=3, color="red", fill="red") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  labs(
-    x = "Cores dos veículos",
-    y = "Preço",
-    title = "BR"
-  )
+  labs(x = "Cores dos veículos",y = "Preço",title = "BR")
 
 br_boxplot
 
 # Distribuição das marcas 
-dados %>%
-  group_by(make) %>%
-  summarise(freq = n()) %>%
-  arrange(desc(freq)) %>%
-  mutate(feq.rel = freq/sum(freq))
-  #tally(sort = TRUE) 
+  df <- dados %>%
+    select(make)%>%
+    group_by(make) %>%
+    summarise(freq = n()) %>%
+    arrange(desc(freq)) %>%
+    mutate(freq.rel = freq/sum(freq)*100)
+  
+  df <- df[1:10,]
+  
+  ggplot(df, aes(x = reorder(make, -freq.rel), y = freq.rel, fill())) +
+    geom_bar(fill = "#0073C2FF", stat = "identity") +
+    geom_text(aes( label = paste(round(freq.rel,2),'%'), vjust = -.5,
+                   y= freq.rel )) +
+    labs(x = "",y = "Frequencia Relativa (%)",
+         title = paste("Distribuição de frequência relativa das 10 marcas mais presentes - Brasil \n representando ", 
+                       round(sum(df$freq.rel),2), "% da região"))+
+    theme_pubclean()
+  
+  ggplot(tips, aes(x= day,  group=sex)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat="count") +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= "count", vjust = -.5) +
+    labs(y = "Percent", fill="day") +
+    facet_grid(~sex) +
+    scale_y_continuous(labels = scales::percent)
 
-# Distribuição dos modelos
-dados %>%
-  group_by(model) %>%
-  summarise(freq = n()) %>%
-  arrange(desc(freq)) %>%
-  mutate(feq.rel = freq/sum(freq))
-
+  # Distribuição dos modelos
+  df <- dados %>%
+    select(model) %>%
+    group_by(model) %>%
+    summarise(freq = n()) %>%
+    arrange(desc(freq)) %>%
+    mutate(freq.rel = freq/sum(freq)*100)
+  
+  df <- df[1:10,]
+  
+  ggplot(df, aes(x = reorder(model, -freq.rel), y = freq.rel, fill())) +
+    geom_bar(fill = "#0073C2FF", stat = "identity") +
+    geom_text(aes( label = paste(round(freq.rel,2),'%'), vjust = -.5, y= freq.rel )) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    labs(x = "",y = "Frequencia Relativa (%)",
+      title = paste("Distribuição de frequência relativa dos 10 modelos mais presentes - Brasil \n representando ", 
+                    round(sum(df$freq.rel),2), "% da região"))+
+    theme_pubclean()
+  
 
 
 ##  ESTADOS SELECIONADOS
@@ -99,106 +122,32 @@ dados_work <-
 
 head(dados_work)
 
-rm(dados)
+#rm(dados)
 
 attach(dados_work)
 
 # *Item (a)* Boxplots por região dos preços dos veículos:
-boxplot.estado <- function(){
-  return()
+boxplot.estado <- function(estado){
+  estado_boxplot <-
+    dados_work %>%
+    select(price, color, region) %>%
+    filter(region == estado) %>%
+    ggplot(mapping = aes(x = color, y = price)) +
+    geom_boxplot(width = .2, outlier.colour = NA,coef = 1000,color = "black") +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    stat_summary(fun = mean, geom="point", shape=20, size=2, 
+                 color="red", fill="red") +
+    labs(x = "",y = "Preço",title = estado)
+  return(estado_boxplot)
 }
-sp_boxplot <-
-  dados_work %>%
-  select(price, color, region) %>%
-  filter(region == "SP") %>%
-  #group_by(color) %>%
-  ggplot(mapping = aes(x = color, y = price)) +
-  geom_boxplot(
-    width = .2,
-    outlier.colour = NA,
-    coef = 1000,
-    #position = position_nudge(.2), 
-    color = "black"
-  ) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  stat_summary(fun = mean, geom="point", shape=20, size=2, 
-               color="red", fill="red") +
-  labs(
-    x = "Cores dos veículos",
-    y = "Preço",
-    title = "SP"
-  )
 
-df_boxplot <-
-  dados_work %>%
-  select(price, color, region) %>%
-  filter(region == "DF") %>%
-  #group_by(color) %>%
-  ggplot(mapping = aes(x = color, as.numeric(price))) +
-  geom_boxplot(
-    width = .2,
-    outlier.colour = NA,
-    coef = 1000,
-    #position = position_nudge(.2), 
-    color = "black"
-  ) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  stat_summary(fun = mean, geom="point", shape=20, size=3, 
-               color="red", fill="red") +
-  labs(
-    x = "Cores dos veículos",
-    y = "Preço",
-    title = "DF"
-  )
-
-ba_boxplot <-
-  dados_work %>%
-  select(price, color, region) %>%
-  filter(region == "BA") %>%
-  #group_by(color) %>%
-  ggplot(mapping = aes(x = color, as.numeric(price))) +
-  geom_boxplot(
-    width = .2,
-    outlier.colour = NA,
-    coef = 1000,
-    #position = position_nudge(.2), 
-    color = "black"
-  ) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  stat_summary(fun = mean, geom="point", shape=20, size=3, 
-               color="red", fill="red") +
-    labs(
-    x = "Cores dos veículos",
-    y = "Preço",
-    title = "BA"
-  )
+sp_boxplot = boxplot.estado("SP")
+df_boxplot = boxplot.estado("DF")
+ba_boxplot = boxplot.estado("BA")
+rs_boxplot = boxplot.estado("RS")
 
 
-rs_boxplot <-
-  dados_work %>%
-  select(price, color, region) %>%
-  filter(region == "RS") %>%
-  #group_by(color) %>%
-  ggplot(mapping = aes(x = color, as.numeric(price))) +
-#  geom_density(mapping = aes(group = color)) +
-  geom_boxplot(
-    width = .2,
-    outlier.colour = NA,
-    coef = 1000,
-    #position = position_nudge(.2), 
-    color = "black"
-  ) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-  stat_summary(fun = mean, geom="point", shape=20, size=3, 
-               color="red", fill="red") +
-    labs(
-    x = "Cores dos veículos",
-    y = "Preço",
-    title = "RS"
-  )
 
-
-rs_boxplot
 
 grid.arrange(sp_boxplot, df_boxplot,
              df_boxplot, rs_boxplot,
@@ -206,17 +155,7 @@ grid.arrange(sp_boxplot, df_boxplot,
 
 # *Item (b)* Distribuição das marcas por região:
 
-# dados_work %>%
-#   select(make, region)%>%
-#   filter(region=='SP')%>%
-#   group_by(make) %>%
-#   summarise(freq = n()) %>%
-#   arrange(desc(freq)) %>%
-#   mutate(feq.rel = freq/sum(freq))
-
-
-
-############ BA ######################
+############ Marcas ######################
 dist.marcas <- function(estado){
   df <- dados_work %>%
     select(make,region) %>%
@@ -230,10 +169,9 @@ dist.marcas <- function(estado){
   
   ggplot(df, aes(x = reorder(make, -freq.rel), y = freq.rel, fill())) +
     geom_bar(fill = "#0073C2FF", stat = "identity") +
-    geom_text(aes(label = make), vjust = -0.3) + 
-    labs(
-      x = "",
-      y = "Frequencia Relativa (%)",
+    geom_text(aes( label = paste(round(freq.rel,2),'%'), vjust = -.5,
+                   y= freq.rel )) +
+labs( x = "", y = "Frequencia Relativa (%)",
       title = paste("Distribuição de frequência relativa das 10 marcas mais presentes - ", estado, 
                     "\n representando ", round(sum(df$freq.rel),2), "% da região")
     )+
@@ -259,18 +197,13 @@ dist.modelo <- function(estado){
   df <- df[1:10,]
   
   ggplot(df, aes(x = reorder(model, -freq.rel), y = freq.rel, fill())) +
-    
     geom_bar(fill = "#0073C2FF", stat = "identity") +
-   # geom_text(aes(label = model), vjust = -0.3) + 
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
-    labs(
-      x = "",
-      y = "Frequencia Relativa (%)",
+    geom_text(aes( label = paste(round(freq.rel,2),'%'), vjust = -.5,
+                   y= freq.rel )) +
+    labs(x = "", y = "Frequencia Relativa (%)",
       title = paste("Distribuição de frequência relativa dos 10 modelos mais presentes - ", estado, 
-                    "\n representando ", round(sum(df$freq.rel),2), "% da região")
-    )+
+                    "\n representando ", round(sum(df$freq.rel),2), "% da região"))+
     theme_pubclean()
-  
 }
 
 dist.modelo('BA')
@@ -278,41 +211,58 @@ dist.modelo('SP')
 dist.modelo('RS')
 dist.modelo('DF')
 
-# # Distribuição de marca por regiao
-# dados_work %>%
-#   select(make, region) %>%
-#   group_by(region) %>%
-#   table()
-# 
-# # Distribuição dos modelos por região:
-# dados_work %>%
-#   select(model, region) %>%
-#   group_by(region) %>%
-#   table()
-
-
 
 # **Exercício 2**
-veiculos_mais_vendidos <-
-  dados_work %>%
-  select(model, region) %>%
-  filter(region == "SP") %>%
-  table()
 
-sort(veiculos_mais_vendidos)
+#veiculos_mais_vendidos <-modelos.mais_vendidos("SP")
 
-veiculos_mais_vendidos <- dados_work$model[veiculos_mais_vendidos > 1000]
-sort(veiculos_mais_vendidos)
+modelos.mais_vendidos <- function(estado){
+  veiculos_mais_vendidos <- dados_work %>%
+    select(model, region) %>%
+    filter(region == estado)
+  
+  veiculos_mais_vendidos <- dados_work$model[veiculos_mais_vendidos > 1000]
+  return(veiculos_mais_vendidos)
+}
 
-valores_mais_vendidos <- 
-  dados_work %>%
-  select(model, region, km, modelyear, price) %>%
-  filter(region == "SP") %>%
-  filter(model %in% veiculos_mais_vendidos) %>%
-  group_by(model) %>%
-  mutate(preco_tempo = cor(as.numeric(price), as.numeric(modelyear)))
+cor.preco_ano <- function(estado){
+   veiculos_mais_vendidos <- modelos.mais_vendidos(estado)
+   df <- dados_work %>%
+     select(model, region, km, modelyear, price) %>%
+       filter(region == estado) %>%
+     filter(model %in% veiculos_mais_vendidos) %>%
+     group_by(model) %>%
+     mutate(preco_tempo = cor(as.numeric(price), as.numeric(modelyear)))
+   return(df)
+}
 
-head(valores_mais_vendidos)
+ modelos.mais_vendidos("DF")
+ 
+ df <- dados_work %>%
+   select(model, region) %>%
+   filter(region == "DF") 
+   
+ 
+ df <- df
+ 
+ View(dados_work)
+ 
+ veiculos_mais_vendidos <- dados_work$model[veiculos_mais_vendidos > 1000]
+ print(veiculos_mais_vendidos)
+ 
+ veiculos_mais_vendidos <- modelos.mais_vendidos("BA")
+ 
+ print(veiculos_mais_vendidos)
+ corrSP <- cor.preco_ano("SP")  
+ print(corrSP)
+ corrDF <- cor.preco_ano("DF")
+ print(corrDF)
+ corrBA<- cor.preco_ano("BA")
+ corrRS <- cor.preco_ano("RS")
+
+ corrSP
+ corrBA
+ head(teste)
 
 # Vemos que há modelos com correlação positiva indicando que há valorização ao
 # longo do tempo. Por outro lado, veiculo com correlção negativa apresenta
@@ -331,3 +281,42 @@ head(km_mais_vendidos)
 
 # Como a correlação é negativa podemos concluir que, em geral,
 # quanto maior a quilometragem menor o valor do veículo.
+
+
+
+#### olds commands
+
+
+# dados %>%
+#   group_by(make) %>%
+#   summarise(freq = n()) %>%
+#   arrange(desc(freq)) %>%
+#   mutate(feq.rel = freq/sum(freq))
+
+
+# # Distribuição dos modelos
+# dados %>%
+#   group_by(model) %>%
+#   summarise(freq = n()) %>%
+#   arrange(desc(freq)) %>%
+#   mutate(feq.rel = freq/sum(freq))
+
+# dados_work %>%
+#   select(make, region)%>%
+#   filter(region=='SP')%>%
+#   group_by(make) %>%
+#   summarise(freq = n()) %>%
+#   arrange(desc(freq)) %>%
+#   mutate(feq.rel = freq/sum(freq))
+
+# # Distribuição de marca por regiao
+# dados_work %>%
+#   select(make, region) %>%
+#   group_by(region) %>%
+#   table()
+# 
+# # Distribuição dos modelos por região:
+# dados_work %>%
+#   select(model, region) %>%
+#   group_by(region) %>%
+#   table()
