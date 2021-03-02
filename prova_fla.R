@@ -1,7 +1,15 @@
+#### Instaladores
+#install.packages("ggpubr")
+
+
+### Carregamento das bibliotecas
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
 library(gridExtra)
+library(ggpubr)
+theme_set(theme_pubr())
+
 setwd('/media/louzeiro/Dados/estagio/mobiauto/')
 
 ## carregamento da base de dados
@@ -96,6 +104,9 @@ rm(dados)
 attach(dados_work)
 
 # *Item (a)* Boxplots por região dos preços dos veículos:
+boxplot.estado <- function(){
+  return()
+}
 sp_boxplot <-
   dados_work %>%
   select(price, color, region) %>%
@@ -194,16 +205,90 @@ grid.arrange(sp_boxplot, df_boxplot,
              ncol=2, nrow=2)
 
 # *Item (b)* Distribuição das marcas por região:
-dados_work %>%
-  select(make, region) %>%
-  group_by(region) %>%
-  table()
 
-# Distribuição dos modelos por região:
-dados_work %>%
-  select(model, region) %>%
-  group_by(region) %>%
-  table()
+# dados_work %>%
+#   select(make, region)%>%
+#   filter(region=='SP')%>%
+#   group_by(make) %>%
+#   summarise(freq = n()) %>%
+#   arrange(desc(freq)) %>%
+#   mutate(feq.rel = freq/sum(freq))
+
+
+
+############ BA ######################
+dist.marcas <- function(estado){
+  df <- dados_work %>%
+    select(make,region) %>%
+    filter(region==estado)%>%
+    group_by(make) %>%
+    summarise(freq = n()) %>%
+    arrange(desc(freq)) %>%
+    mutate(freq.rel = freq/sum(freq)*100)
+  
+  df <- df[1:10,]
+  
+  ggplot(df, aes(x = reorder(make, -freq.rel), y = freq.rel, fill())) +
+    geom_bar(fill = "#0073C2FF", stat = "identity") +
+    geom_text(aes(label = make), vjust = -0.3) + 
+    labs(
+      x = "",
+      y = "Frequencia Relativa (%)",
+      title = paste("Distribuição de frequência relativa das 10 marcas mais presentes - ", estado, 
+                    "\n representando ", round(sum(df$freq.rel),2), "% da região")
+    )+
+    theme_pubclean()
+  
+}
+
+dist.marcas('BA')
+dist.marcas('SP')
+dist.marcas('RS')
+dist.marcas('DF')
+
+
+dist.modelo <- function(estado){
+  df <- dados_work %>%
+    select(model,region) %>%
+    filter(region==estado)%>%
+    group_by(model) %>%
+    summarise(freq = n()) %>%
+    arrange(desc(freq)) %>%
+    mutate(freq.rel = freq/sum(freq)*100)
+  
+  df <- df[1:10,]
+  
+  ggplot(df, aes(x = reorder(model, -freq.rel), y = freq.rel, fill())) +
+    
+    geom_bar(fill = "#0073C2FF", stat = "identity") +
+   # geom_text(aes(label = model), vjust = -0.3) + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+    labs(
+      x = "",
+      y = "Frequencia Relativa (%)",
+      title = paste("Distribuição de frequência relativa dos 10 modelos mais presentes - ", estado, 
+                    "\n representando ", round(sum(df$freq.rel),2), "% da região")
+    )+
+    theme_pubclean()
+  
+}
+
+dist.modelo('BA')
+dist.modelo('SP')
+dist.modelo('RS')
+dist.modelo('DF')
+
+# # Distribuição de marca por regiao
+# dados_work %>%
+#   select(make, region) %>%
+#   group_by(region) %>%
+#   table()
+# 
+# # Distribuição dos modelos por região:
+# dados_work %>%
+#   select(model, region) %>%
+#   group_by(region) %>%
+#   table()
 
 
 
